@@ -135,7 +135,8 @@ fn fun2cfg(fun: &mut BBFun) {
                         out_edges.push((*target_idx, idx));
                     }
                 }
-                _ => {}
+                EffectOps::Return => {}
+                _ => out_edges.push((idx + 1, idx)),
             },
             None => {}
         };
