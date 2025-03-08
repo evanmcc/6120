@@ -122,10 +122,6 @@ fn fun2cfg(fun: &mut BBFun) {
     let mut in_edges: Vec<(usize, usize)> = Vec::new();
     let mut out_edges: Vec<(usize, usize)> = Vec::new();
     for (idx, b) in fun.blocks.iter_mut().enumerate() {
-        if let Some(instr) = b.instrs.last() {
-            println!("{instr:?}");
-        }
-
         match b.instrs.last() {
             Some(Constant { .. }) | Some(Value { .. }) => {
                 out_edges.push((idx + 1, idx));
@@ -152,19 +148,25 @@ fn fun2cfg(fun: &mut BBFun) {
     }
 }
 
+fn remove_unreachable_blocks(fun: &mut BBFun) {
+    for (idx, block) in &mut fun.blocks.iter_mut().enumerate() {
+        if idx != 0 && block.in_edges.is_empty() {
+            block.live = false;
+        }
+    }
+}
+
 fn main() {
     let program = bril_rs::load_program();
     let mut funs = prog2bb(&program);
     funs.iter_mut().for_each(fun2cfg);
 
+    println!("initial program\n{}", program);
+
+    funs.iter_mut().for_each(remove_unreachable_blocks);
+
+    println!("optimized cfg");
     for f in &funs {
         print!("{}", f);
     }
-
-    ///funs = remove_unreachable_blocks(&mut funs);
-
-    // for f in &funs {
-    //     print!("{}", f);
-    // }
-    println!("\nprogram here\n{}", program);
 }
