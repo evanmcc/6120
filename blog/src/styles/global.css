@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  @font-face {
+    font-family: "Geist";
+    src: url("/fonts/geist-variable.woff2") format("woff2");
+    font-display: swap;
+  }
+  @font-face {
+    font-family: "Geist Mono";
+    src: url("/fonts/geist-mono-variable.woff2") format("woff2");
+    font-display: swap;
+  }
+}
+
+@layer components {
+  article {
+    p {
+      @apply my-4 text-xl leading-relaxed;
+    }
+    h1 {
+      @apply my-4 text-3xl font-medium dark:text-white;
+    }
+    h2 {
+      @apply my-4 text-2xl font-medium dark:text-white;
+    }
+    h3,
+    h4,
+    h5,
+    h6 {
+      @apply my-4 font-medium dark:text-white;
+    }
+    :not(pre) > code {
+      @apply whitespace-nowrap rounded border bg-zinc-200/50 px-1 py-0.5 font-mono font-medium text-lg text-black dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-white;
+    }
+    pre:has(code) {
+      @apply my-4 max-h-[600px] overflow-auto rounded-lg border p-4 text-lg font-mono font-medium dark:border-zinc-700;
+    }
+    img {
+      @apply my-4 rounded-lg border dark:border-zinc-700;
+    }
+    video {
+      @apply my-4 rounded-lg border dark:border-zinc-700;
+    }
+    blockquote {
+      @apply my-4 border-l-2 pl-4;
+    }
+    a {
+      @apply underline;
+    }
+    table {
+      @apply my-4 w-full table-auto border-collapse text-sm;
+      th {
+        @apply border-b p-4 text-xl text-left font-medium dark:border-zinc-700;
+      }
+      td {
+        @apply border-b bg-zinc-50 p-4 text-xl dark:border-zinc-700 dark:bg-zinc-800;
+      }
+    }
+    ol {
+      @apply my-1 text-xl list-inside list-decimal space-y-1 [&_ol]:pl-5 [&_ul]:pl-5;
+    }
+    ul {
+      @apply my-1 text-xl list-inside list-disc space-y-1 [&_ol]:pl-5 [&_ul]:pl-5;
+    }
+    kbd {
+      @apply rounded border border-b-2 bg-zinc-100 px-1 py-0.5 font-mono text-lg font-medium text-black dark:border-zinc-700 dark:bg-zinc-800 dark:text-white;
+    }
+    mark {
+      @apply dark:bg-yellow-500/50 dark:text-white;
+    }
+  }
+}

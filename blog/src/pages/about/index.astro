@@ -1,0 +1,18 @@
+---
+import { getCollection } from "astro:content";
+import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
+import Layout from "../../layouts/Layout.astro";
+import { formatDate } from "../../lib/utils";
+---
+
+<Layout title={SITE_TITLE} description={SITE_DESCRIPTION}>
+  <main>
+    <p>This is a single-serving blog I am keeping to document my self-guided pass through Cornell's cs6120, taught by <a href="https://www.cs.cornell.edu/~asampson/"> Adrian Sampson</a>.  It is being done in early 2025, so may not be reflective of your experience with the course if it happens in some other year.
+<br/>
+<br/>
+<p>I'm Evan Vigil-McClanahan, a programmer and programming languages enthusiast.  Please send me an <a href="mailto:mcclanahan@gmail.com">email</a> if you have any questions or comments.  This material is also online at <a href="https://github.com/evanmcc/6120/">https://github.com/evanmcc/6120/</a> if you want to fix something.
+<br/>
+<br/>
+This blog uses a hacked up version of the <a href="">miniblog theme</a> for astro. 
+  </main>
+</Layout>
