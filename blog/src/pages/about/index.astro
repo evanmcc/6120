@@ -1,19 +1,14 @@
 ---
-import { getEntry, render } from "astro:content";
 import { SITE_DESCRIPTION, SITE_TITLE } from "../../consts";
 import Layout from "../../layouts/Layout.astro";
-import { formatDate } from "../../lib/utils";
 
-const about = await getEntry('about', 'about');
-const { Content, headings } = await render(about);
+import * as about from '../../content/about/about.md';
 ---
 
 <Layout title={SITE_TITLE} description={SITE_DESCRIPTION}>
   <main>
-  
     <article>
-      <Content />
+      <about.Content />
     </article>
-
   </main>
 </Layout>
