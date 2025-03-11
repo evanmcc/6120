@@ -33,10 +33,10 @@
       @apply my-4 font-medium dark:text-white;
     }
     :not(pre) > code {
-      @apply whitespace-nowrap rounded border bg-zinc-200/50 px-1 py-0.5 font-mono font-medium text-lg text-black dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-white;
+      @apply whitespace-nowrap rounded border bg-zinc-200/50 px-1 py-0.5 font-mono font-medium text-base text-black dark:border-zinc-700 dark:bg-zinc-800/50 dark:text-white;
     }
     pre:has(code) {
-      @apply my-4 max-h-[600px] overflow-auto rounded-lg border p-4 text-lg font-mono font-medium dark:border-zinc-700;
+      @apply my-4 overflow-auto rounded-lg border p-4 text-base font-mono font-medium dark:border-zinc-700;
     }
     img {
       @apply my-4 rounded-lg border dark:border-zinc-700;
