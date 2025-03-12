@@ -2,6 +2,7 @@ use bril_rs::{Code, EffectOps, Function, Instruction, Program};
 use std::collections::{HashMap, HashSet};
 use std::env::args;
 use std::fmt;
+use std::process;
 
 #[derive(Debug, Clone)]
 struct BasicBlock {
@@ -156,9 +157,22 @@ fn fun2cfg(fun: &mut BBFun) {
 }
 
 fn remove_unreachable_blocks(fun: &mut BBFun) {
-    for (idx, block) in &mut fun.blocks.iter_mut().enumerate() {
-        if idx != 0 && block.in_edges.is_empty() {
-            block.live = false;
+    let mut changed = true;
+    while changed {
+        changed = false;
+        let mut acc = HashSet::new();
+        for (idx, block) in &mut fun.blocks.iter_mut().enumerate() {
+            if idx != 0 && block.live && block.in_edges.is_empty() {
+                block.live = false;
+                changed = true;
+                acc.insert(idx);
+            }
+        }
+        // we have to remove the dead block from all in sets otherwise the fixpoint iteration won't
+        // make progress
+        for block in &mut fun.blocks.iter_mut() {
+            let _ = block.in_edges.difference(&acc);
+            }
         }
     }
 }
@@ -196,12 +210,18 @@ fn cfg2program(funs: &Vec<BBFun>) -> Program {
 }
 
 fn main() {
-    let mut args = args();
+    let args = args();
     let mut debug: bool = false;
-    if let Some(deb) = args.nth(1) {
-        println!("arg {}", deb);
-        if deb == "-d" {
-            debug = true;
+    for arg in args {
+        if arg.starts_with("/") {
+            continue;
+        }
+        match arg.as_str() {
+            "-d" => debug = true,
+            _ => {
+                eprintln!("unknown arg: {}", arg);
+                //process::exit(5);
+            }
         }
     }
 
