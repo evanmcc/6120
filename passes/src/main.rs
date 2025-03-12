@@ -2,7 +2,7 @@ use bril_rs::{Code, EffectOps, Function, Instruction, Program};
 use std::collections::{HashMap, HashSet};
 use std::env::args;
 use std::fmt;
-use std::process;
+//use std::process;
 
 #[derive(Debug, Clone)]
 struct BasicBlock {
@@ -168,11 +168,85 @@ fn remove_unreachable_blocks(fun: &mut BBFun) {
                 acc.insert(idx);
             }
         }
-        // we have to remove the dead block from all in sets otherwise the fixpoint iteration won't
+        // we have to remove the dead block from all in sets otherwise the fix point iteration won't
         // make progress
         for block in &mut fun.blocks.iter_mut() {
             let _ = block.in_edges.difference(&acc);
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Position {
+    block: usize,
+    instr: usize,
+}
+
+fn dce(fun: &mut BBFun) {
+    let mut changed = true;
+    let mut acc: Vec<Position> = Vec::new();
+    while changed {
+        changed = false;
+        let mut defs: HashMap<String, Position> = HashMap::new();
+        for (block_idx, block) in fun.blocks.iter().enumerate() {
+            for (instr_idx, instr) in block.instrs.iter().enumerate() {
+                match instr {
+                    Code::Label { .. } => {}
+                    Code::Instruction(Instruction::Value { dest, args, .. }) => {
+                        //this is a type of use
+                        for arg in args {
+                            let _ = defs.remove(arg);
+                        }
+                        if let Some(old_def) = defs.insert(
+                            dest.clone(),
+                            Position {
+                                block: block_idx,
+                                instr: instr_idx,
+                            },
+                        ) {
+                            acc.push(old_def);
+                        };
+                    }
+                    Code::Instruction(Instruction::Constant { dest, .. }) => {
+                        if let Some(old_def) = defs.insert(
+                            dest.clone(),
+                            Position {
+                                block: block_idx,
+                                instr: instr_idx,
+                            },
+                        ) {
+                            acc.push(old_def);
+                        };
+                    }
+                    Code::Instruction(Instruction::Effect { args, .. }) => {
+                        //this is a type of use
+                        //eprintln!("eff: {:?}", instr)
+                        for arg in args {
+                            let _ = defs.remove(arg);
+                        }
+                    }
+                }
             }
+        }
+        //any unused defs are emptied into acc
+        for (_name, pos) in &defs {
+            acc.push(pos.clone());
+        }
+        defs.clear();
+        //eprintln!("acc {:?}", acc);
+        if !acc.is_empty() {
+            changed = true;
+            //for speed, replace dead instructions with nops for later filtering
+            for Position { block, instr } in &acc {
+                fun.blocks[*block].instrs[*instr] = Code::Instruction(Instruction::Effect {
+                    args: vec![],
+                    funcs: vec![],
+                    labels: vec![],
+                    op: EffectOps::Nop,
+                    pos: None,
+                });
+            }
+            acc.clear();
         }
     }
 }
@@ -185,10 +259,29 @@ fn flatten_basic_blocks(bbs: &Vec<BasicBlock>) -> Vec<Code> {
             ret.push(label.clone());
         }
         if bb.live {
-            ret.extend(bb.instrs.clone());
+            ret.extend(
+                bb.instrs
+                    .clone()
+                    .into_iter()
+                    .to_owned()
+                    .filter(|c| not_nop(c)),
+            );
         }
     }
     ret
+}
+
+fn not_nop(c: &Code) -> bool {
+    match c {
+        Code::Instruction(Instruction::Effect { op, .. }) => {
+            if let EffectOps::Nop = op {
+                false
+            } else {
+                true
+            }
+        }
+        _ => true,
+    }
 }
 
 fn cfg2program(funs: &Vec<BBFun>) -> Program {
@@ -232,8 +325,12 @@ fn main() {
     if debug {
         println!("initial program\n{}", program);
     }
+    let mut passes: Vec<fn(&mut BBFun)> = vec![remove_unreachable_blocks];
+    passes.push(dce);
 
-    funs.iter_mut().for_each(remove_unreachable_blocks);
+    for pass in passes {
+        funs.iter_mut().for_each(pass)
+    }
 
     if debug {
         println!("optimized cfg");
