@@ -10,3 +10,6 @@ version = "0.1.0"
 path = "../bril/bril-rs"
 features = ["ssa", "memory", "float", "speculate", "position"]
 
+[lints.clippy]
+match-like-matches-macro = "allow"
+
