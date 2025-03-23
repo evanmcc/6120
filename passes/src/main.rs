@@ -1,100 +1,48 @@
-use bril_rs::{Code, EffectOps, Function, Instruction, Program};
-use std::collections::HashMap;
-use std::env::args;
-//use std::process;
+use clap::Parser;
 
 mod blocks;
-use crate::blocks::*;
+use crate::blocks::{remove_unreachable_blocks, *};
 
-#[derive(Debug, Clone)]
-struct Position {
-    block: usize,
-    instr: usize,
+mod dce;
+use crate::dce::dce;
+
+mod lvn;
+use crate::lvn::lvn_dce;
+
+#[derive(Parser)]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[arg(short, long, value_name = "PASSES")]
+    passes: Option<String>,
+
+    /// Turn debugging information on
+    #[arg(short, long, action = clap::ArgAction::Count)]
+    debug: u8,
 }
 
-fn dce(fun: &mut BBFun) {
-    let mut changed = true;
-    let mut acc: Vec<Position> = Vec::new();
-    while changed {
-        changed = false;
-        let mut defs: HashMap<String, Position> = HashMap::new();
-        for (block_idx, block) in fun.blocks.iter().enumerate() {
-            for (instr_idx, instr) in block.instrs.iter().enumerate() {
-                match instr {
-                    Code::Label { .. } => {}
-                    Code::Instruction(Instruction::Value { dest, args, .. }) => {
-                        //this is a type of use
-                        for arg in args {
-                            let _ = defs.remove(arg);
-                        }
-                        if let Some(old_def) = defs.insert(
-                            dest.clone(),
-                            Position {
-                                block: block_idx,
-                                instr: instr_idx,
-                            },
-                        ) {
-                            acc.push(old_def);
-                        };
-                    }
-                    Code::Instruction(Instruction::Constant { dest, .. }) => {
-                        if let Some(old_def) = defs.insert(
-                            dest.clone(),
-                            Position {
-                                block: block_idx,
-                                instr: instr_idx,
-                            },
-                        ) {
-                            acc.push(old_def);
-                        };
-                    }
-                    Code::Instruction(Instruction::Effect { args, .. }) => {
-                        //this is a type of use
-                        //eprintln!("eff: {:?}", instr)
-                        for arg in args {
-                            let _ = defs.remove(arg);
-                        }
-                    }
+type Pass = fn(&mut BBFun);
+
+fn main() {
+    let cli = Cli::parse();
+    let all_passes: Vec<Pass> = vec![remove_unreachable_blocks, dce, lvn_dce];
+
+    let mut passes: Vec<Pass> = Vec::new();
+    let mut debug: bool = cli.debug > 0;
+    if let Some(pass_str) = cli.passes {
+        if pass_str == "all".to_string() {
+            passes.extend(all_passes);
+        } else {
+            for p in pass_str.split(",") {
+                match p {
+                    "dce" => passes.push(dce),
+                    "lvn_dce" => passes.push(lvn_dce),
+                    "remove_unreachable_blocks" => passes.push(remove_unreachable_blocks),
+                    _ => panic!("unknown pass: {}", p),
                 }
             }
         }
-        //any unused defs are emptied into acc
-        for pos in defs.values() {
-            acc.push(pos.clone());
-        }
-        defs.clear();
-        //eprintln!("acc {:?}", acc);
-        if !acc.is_empty() {
-            changed = true;
-            //for speed, replace dead instructions with nops for later filtering
-            for Position { block, instr } in &acc {
-                fun.blocks[*block].instrs[*instr] = Code::Instruction(Instruction::Effect {
-                    args: vec![],
-                    funcs: vec![],
-                    labels: vec![],
-                    op: EffectOps::Nop,
-                    pos: None,
-                });
-            }
-            acc.clear();
-        }
-    }
-}
-
-fn main() {
-    let args = args();
-    let mut debug: bool = false;
-    for arg in args {
-        if arg.starts_with("/") {
-            continue;
-        }
-        match arg.as_str() {
-            "-d" => debug = true,
-            _ => {
-                eprintln!("unknown arg: {}", arg);
-                //process::exit(5);
-            }
-        }
+    } else {
+        passes.extend(all_passes);
     }
 
     let program = bril_rs::load_program();
@@ -104,8 +52,6 @@ fn main() {
     if debug {
         println!("initial program\n{}", program);
     }
-    let mut passes: Vec<fn(&mut BBFun)> = vec![remove_unreachable_blocks];
-    passes.push(dce);
 
     for pass in passes {
         funs.iter_mut().for_each(pass)
